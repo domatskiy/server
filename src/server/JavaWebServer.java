@@ -6,18 +6,20 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Date;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
  
 public class JavaWebServer
 {
- 
+    private static final int port = 82;
+    
     private static final int fNumberOfThreads = 100;
     private static final Executor fThreadPool = Executors.newFixedThreadPool(fNumberOfThreads);
  
     public static void main(String[] args) throws IOException
     {
-        ServerSocket socket = new ServerSocket(81);
+        ServerSocket socket = new ServerSocket(port);
         while (true)
         {
             final Socket connection = socket.accept();
@@ -33,7 +35,7 @@ public class JavaWebServer
         }
     }
  
-    private static void HandleRequest(Socket s)
+    private static void HandleRequest(Socket socket)
     {
         BufferedReader in;
         PrintWriter out;
@@ -41,32 +43,36 @@ public class JavaWebServer
  
         try
         {
-            String webServerAddress = s.getInetAddress().toString();
-            String webLocalAddress = s.getLocalAddress().toString();
+            String webServerAddress = socket.getInetAddress().toString();
+            int webPort = socket.getPort();
             
-            System.out.println("New Connection server:" + webServerAddress);
-            System.out.println("New Connection local:" + webLocalAddress);
+            System.out.println("=========== Connection server:" + webServerAddress);
+            System.out.println("- port:" + webPort);
 
-            in = new BufferedReader(new InputStreamReader(s.getInputStream()));
+            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             
             request = in.readLine();
             System.out.println("--- Client request: " + request);
  
-            out = new PrintWriter(s.getOutputStream(), true);
+            String response = "{"
+                    + "temperature:20"
+                    + "}";
+            
+            out = new PrintWriter(socket.getOutputStream(), true);
             out.println("HTTP/1.0 200");
-            out.println("Content-type: text/html");
-            out.println("Server-name: myserver");
-            String response = "<html>"
-                    + "<head>"
-                    + "<title>Server</title></head>"
-                    + "<h1>Welcome to Server!</h1>"
-                    + "</html>";
+            out.println("Content-type: application/json");
+            out.println("Server-name: smarthome");
             out.println("Content-length: " + response.length());
             out.println("");
             out.println(response);
             out.flush();
             out.close();
-            s.close();
+            
+           /*Date today = new Date();
+           String httpResponse = "HTTP/1.1 200 OK\r\n\r\n" + today; 
+           socket.getOutputStream().write(httpResponse.getBytes("UTF-8"));*/
+
+           socket.close();
         }
         catch (IOException e)
         {
@@ -74,11 +80,11 @@ public class JavaWebServer
         }
         finally
         {
-            if (s != null)
+            if (socket != null)
             {
                 try
                 {
-                    s.close();
+                    socket.close();
                 }
                 catch (IOException e)
                 {
